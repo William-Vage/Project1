@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "fixed_point.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -89,7 +90,8 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
-
+    
+    int64_t ticks_blocked;
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
@@ -100,12 +102,20 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+    int base_priority;                  /* Base priority. */
+    struct list locks;                 
+    struct lock *lock_waiting;
+
+    int nice;
+    fixed_t recent_cpu;
   };
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+
+void blocked_thread_check(struct thread *t, void *aux UNUSED);
 
 void thread_init (void);
 void thread_start (void);
@@ -138,4 +148,11 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+void thread_donate_priority (struct thread *);
+void thread_hold_the_lock(struct lock *);
+bool thread_cmp_priority (const struct list_elem *, const struct list_elem *, void *);
+
+void thread_mlfqs_increase_recent_cpu_by_one ();
+void thread_mlfqs_increase_recent_cpu_by_one ();
+void thread_mlfqs_update_priority (struct thread *);
 #endif /* threads/thread.h */
